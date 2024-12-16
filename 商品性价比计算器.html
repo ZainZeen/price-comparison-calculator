@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商品性价比计算器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 0 15px;
+        }
+        .control-panel {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .mode-selector {
+            display: flex;
+            gap: 10px;
+        }
+        .mode-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #eee;
+        }
+        .mode-button.active {
+            background: #2c5282;
+            color: white;
+        }
+        .reset-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background: #e53e3e;
+            color: white;
+        }
+        .calc-group {
+            margin: 15px 0;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+        }
+        .input-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+        .result-row {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c5282;
+            padding: 5px 0;
+        }
+        input {
+            width: 100px;
+            padding: 8px;
+        }
+        button {
+            padding: 8px 15px;
+        }
+        .best-value {
+            background: #e6ffe6;
+        }
+    </style>
+</head>
+<body>
+    <h2>商品性价比计算器</h2>
+    <div class="control-panel">
+        <div class="mode-selector">
+            <button class="mode-button active" onclick="switchMode('weight')">重量模式</button>
+            <button class="mode-button" onclick="switchMode('quantity')">数量模式</button>
+        </div>
+        <button class="reset-button" onclick="resetCalculator()">归零</button>
+    </div>
+    <div id="calculator-container"></div>
+
+    <script>
+        let currentMode = 'weight';
+
+        function resetCalculator() {
+            document.getElementById('calculator-container').innerHTML = '';
+            addNewGroup();
+        }
+
+        function switchMode(mode) {
+            currentMode = mode;
+            // 更新按钮状态
+            document.querySelectorAll('.mode-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // 重置计算器
+            resetCalculator();
+        }
+
+        function calculate(button) {
+            const group = button.closest('.calc-group');
+            const value1 = parseFloat(group.querySelector('.value1').value);
+            const price = parseFloat(group.querySelector('.price').value);
+
+            if (value1 && price) {
+                let unitPrice;
+                if (currentMode === 'weight') {
+                    unitPrice = (price / value1 * 100).toFixed(3);
+                    group.querySelector('.result-row').textContent = `${unitPrice}元/100g`;
+                } else {
+                    unitPrice = (price / value1).toFixed(3);
+                    group.querySelector('.result-row').textContent = `${unitPrice}元/个`;
+                }
+                
+                // 禁用当前输入框和按钮
+                group.querySelectorAll('input, button').forEach(el => el.disabled = true);
+                
+                // 添加新的计算组
+                addNewGroup();
+                
+                // 找出最低单价并标记
+                highlightBestValue();
+            }
+        }
+
+        function addNewGroup() {
+            const newGroup = document.createElement('div');
+            newGroup.className = 'calc-group';
+            const placeholder1 = currentMode === 'weight' ? '重量(g)' : '数量(个)';
+            
+            newGroup.innerHTML = `
+                <div class="input-row">
+                    <input type="number" placeholder="${placeholder1}" step="0.1" class="value1">
+                    <input type="number" placeholder="价格(元)" step="0.01" class="price">
+                    <button onclick="calculate(this)">计算</button>
+                </div>
+                <div class="result-row"></div>
+            `;
+            document.getElementById('calculator-container').appendChild(newGroup);
+            newGroup.querySelector('.value1').focus();
+        }
+
+        function highlightBestValue() {
+            const groups = document.querySelectorAll('.calc-group');
+            let minPrice = Infinity;
+            let bestGroup = null;
+
+            groups.forEach(group => {
+                group.classList.remove('best-value');
+            });
+
+            groups.forEach(group => {
+                const resultText = group.querySelector('.result-row').textContent;
+                if (resultText) {
+                    const price = parseFloat(resultText.replace(currentMode === 'weight' ? '元/100g' : '元/个', ''));
+                    if (price < minPrice) {
+                        minPrice = price;
+                        bestGroup = group;
+                    }
+                }
+            });
+
+            if (bestGroup) {
+                bestGroup.classList.add('best-value');
+            }
+        }
+
+        // 添加回车键支持
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const activeElement = document.activeElement;
+                if (activeElement.classList.contains('price')) {
+                    const button = activeElement.closest('.calc-group').querySelector('button');
+                    if (!button.disabled) {
+                        button.click();
+                    }
+                }
+            }
+        });
+
+        // 初始化第一个计算组
+        addNewGroup();
+    </script>
+</body>
+</html>
